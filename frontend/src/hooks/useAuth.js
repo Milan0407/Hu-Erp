@@ -90,6 +90,7 @@ export const useAuth = () => {
       if (response.success) {
         // Get user profile
         const userResponse = await authService.getCurrentUser();
+<<<<<<< HEAD
         if (userResponse.success) {
           dispatch(setCredentials(userResponse.data));
           toast.success('Login successful!');
@@ -101,11 +102,20 @@ export const useAuth = () => {
       } else {
         toast.error(response.message || 'Login failed');
         return null;
+=======
+        dispatch(setCredentials(userResponse.data));
+        toast.success('Login successful!');
+        return userResponse.data;
+>>>>>>> e727427286fb32a4fc4e1603fde40835f451aa83
       }
     } catch (error) {
       const message = error.response?.data?.message || 'Login failed';
       toast.error(message);
+<<<<<<< HEAD
       return null;
+=======
+      throw error;
+>>>>>>> e727427286fb32a4fc4e1603fde40835f451aa83
     } finally {
       dispatch(setLoading(false));
     }

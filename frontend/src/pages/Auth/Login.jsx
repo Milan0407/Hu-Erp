@@ -6,7 +6,6 @@ import { z } from 'zod';
 import { useAuth } from '../../hooks/useAuth';
 import { Mail, Lock, Eye, EyeOff, Loader2, GraduationCap } from 'lucide-react';
 
-
 const loginSchema = z.object({
     email: z.string().email('Invalid email address'),
     password: z.string().min(1, 'Password is required'),
@@ -56,9 +55,8 @@ const Login = () => {
         setIsLoading(true);
         try {
             const result = await loginWithOtp(loginEmail, data.otp);
-            console.log(result.user.role)
-           
-            if (result && result.user?.role) {
+
+            if (result) {
                 // Redirect based on role
                 if (result?.user?.role === 'STUDENT') {
                     navigate('/student/dashboard');
@@ -68,7 +66,6 @@ const Login = () => {
                     navigate('/admin/dashboard');
                 }
             }
-            // If result is null or doesn't have role, don't navigate (error already shown by toast)
         } catch (error) {
             console.error('Login failed:', error);
         } finally {
