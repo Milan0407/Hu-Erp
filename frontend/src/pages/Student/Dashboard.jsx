@@ -1,4 +1,5 @@
 import { useAuth } from '../../hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 import {
     BookOpen,
     Calendar,
@@ -12,6 +13,7 @@ import {
 
 const StudentDashboard = () => {
     const { user, profile } = useAuth();
+    const navigate = useNavigate();
 
     const stats = [
         {
@@ -53,7 +55,7 @@ const StudentDashboard = () => {
                         <div>
                             <h1 className="text-3xl font-display font-bold text-gray-900 dark:text-white">
                                 Welcome back,{' '}
-                                {profile?.firstName || user?.email?.split('@')[0]}! 👋
+                                {user?.firstName || user?.email?.split('@')[0]}! 👋
                             </h1>
                             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                                 {profile?.enrollmentNumber && `Enrollment: ${profile.enrollmentNumber}`}
@@ -146,10 +148,11 @@ const StudentDashboard = () => {
                                     { icon: Calendar, label: 'View Attendance', color: 'primary' },
                                     { icon: FileText, label: 'Check Results', color: 'success' },
                                     { icon: DollarSign, label: 'Pay Fees', color: 'warning' },
-                                    { icon: Users, label: 'My Courses', color: 'secondary' },
+                                    { icon: Users, label: 'My Courses', color: 'secondary', route: '/student/courses' },
                                 ].map((action, index) => (
                                     <button
                                         key={index}
+                                        onClick={() => action.route && navigate(action.route)}
                                         className="w-full flex items-center p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                                     >
                                         <action.icon className={`h-5 w-5 text-${action.color}-600`} />
