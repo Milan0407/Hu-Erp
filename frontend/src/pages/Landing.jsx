@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link } from 'react-router-dom';
 import useScrollReveal from "@/hooks/useScrollReveal";
+import { useState, useEffect } from "react";
 
 import {
   BookOpen,
@@ -15,164 +15,143 @@ import {
 
 const Landing = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
   const featuresReveal = useScrollReveal();
   const principlesReveal = useScrollReveal();
 
+  // Detect dark mode
+  useEffect(() => {
+    const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    setIsDarkMode(darkQuery.matches);
+
+    const handler = (e) => setIsDarkMode(e.matches);
+    darkQuery.addEventListener('change', handler);
+
+    return () => darkQuery.removeEventListener('change', handler);
+  }, []);
+
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
-
-      {/* ================= NAVBAR ================= */}
-      <nav className="fixed w-full z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md">
+      {/* Navigation */}
+      <nav className="fixed w-full z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
-
-            <img
-              src="/src/assets/logo.avif"
-              alt="Haridwar University Logo"
-              className="w-[140px] h-[42px] object-contain"
-            />
-
-            <div className="hidden md:flex items-center space-x-8">
-              <a href="#features" className="nav-link">Features</a>
-              <a href="#about" className="nav-link">About</a>
-              <a href="#contact" className="nav-link">Contact</a>
-              <Link to="/login" className="btn btn-primary">Sign In</Link>
+            <div className="flex items-center">
+              <img
+                src="/src/assets/logo.avif"
+                alt="Haridwar University Logo"
+                className="w-[140px] h-[42px] sm:w-[160px] sm:h-[48px] object-contain"
+              />
             </div>
-
-            <button
-              onClick={() => setIsOpen(true)}
-              className="md:hidden text-gray-700 dark:text-gray-200"
-            >
-              <Menu className="h-7 w-7" />
-            </button>
-
+            {/* Desktop Menu */}
+            <div className="hidden md:flex items-center space-x-8">
+              {["features", "about", "contact"].map((item) => (
+                <a
+                  key={item}
+                  href={`#${item}`}
+                  className="text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 font-medium"
+                >
+                  {item.charAt(0).toUpperCase() + item.slice(1)}
+                </a>
+              ))}
+              <Link to="/login" className="btn btn-primary">
+                Sign In
+              </Link>
+            </div>
+            {/* Mobile Hamburger */}
+            <div className="md:hidden">
+              <button
+                onClick={() => setIsOpen(true)}
+                className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+              >
+                <Menu className="h-6 w-6 text-gray-700 dark:text-gray-300" />
+              </button>
+            </div>
           </div>
         </div>
       </nav>
 
-      {/* ================= SIDEBAR ================= */}
-<div className={`fixed inset-0 z-50 transition-all duration-300 ${isOpen ? "visible" : "invisible"}`}>
+      {/* Hero Section */}
+      <div className="relative pt-32 pb-20 sm:pt-40 sm:pb-24 overflow-hidden">
+        {/* Background Image */}
+        <div
+          className="absolute inset-0 bg-cover bg-center transition-opacity duration-500"
+          style={{
+            backgroundImage: `url(${isDarkMode ? '/src/assets/heroImageDark.avif' : '/src/assets/heroImage.avif'})`,
+          }}
+        ></div>
+        <div className="absolute inset-0 bg-black/40 dark:bg-black/70"></div>
 
-  {/* Overlay */}
-  <div
-    onClick={() => setIsOpen(false)}
-    className={`absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300 ${
-      isOpen ? "opacity-100" : "opacity-0"
-    }`}
-  />
-
-  {/* Sidebar Panel */}
-  <div
-    className={`absolute right-0 top-0 h-full w-72 
-    bg-white dark:bg-gray-900 
-    shadow-2xl 
-    rounded-l-3xl
-    transform transition-transform duration-300 ease-in-out
-    ${isOpen ? "translate-x-0" : "translate-x-full"}`}
-  >
-
-    {/* Header */}
-    <div className="flex items-center justify-between p-6 border-b dark:border-gray-700">
-      <img
-        src="/src/assets/logo.avif"
-        className="w-[120px] object-contain"
-      />
-      <button
-        onClick={() => setIsOpen(false)}
-        className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition"
-      >
-        <X className="h-6 w-6 text-gray-700 dark:text-gray-300" />
-      </button>
-    </div>
-
-    {/* Navigation */}
-    <nav className="p-6">
-      <ul className="space-y-4">
-
-        {["Features", "About", "Contact"].map((item) => (
-          <li key={item}>
-            <a
-              href={`#${item.toLowerCase()}`}
-              onClick={() => setIsOpen(false)}
-              className="block px-4 py-3 rounded-xl
-              text-gray-700 dark:text-gray-300
-              hover:bg-primary-50 dark:hover:bg-gray-800
-              hover:text-primary-600
-              transition-all duration-200 font-medium"
-            >
-              {item}
-            </a>
-          </li>
-        ))}
-
-        {/* Button */}
-        <li className="pt-6">
-          <Link
-            to="/login"
+        {/* Sidebar */}
+        <div className={`fixed inset-0 z-50 transition-all duration-300 ${isOpen ? "visible pointer-events-auto" : "invisible pointer-events-none"}`}>
+          {/* Overlay */}
+          <div
             onClick={() => setIsOpen(false)}
-            className="block w-full text-center
-            rounded-xl py-3 font-semibold
-            bg-primary-600 text-white
-            hover:bg-primary-700
-            transition-all duration-300 shadow-md"
+            className={`absolute inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${isOpen ? "opacity-100" : "opacity-0"}`}
+          />
+          {/* Sidebar Panel */}
+          <div
+            className={`absolute right-0 top-0 h-full w-72 bg-white dark:bg-gray-900 shadow-2xl rounded-l-3xl transform transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "translate-x-full"}`}
           >
-            Sign In
-          </Link>
-        </li>
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b dark:border-gray-700">
+              <img
+                src="/src/assets/logo.avif"
+                className="w-[120px] object-contain"
+                alt="Logo"
+              />
+              <button
+                onClick={() => setIsOpen(false)}
+                className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+              >
+                <X className="h-6 w-6 text-gray-700 dark:text-gray-300" />
+              </button>
+            </div>
+            {/* Navigation */}
+            <nav className="p-6">
+              <ul className="space-y-4">
+                {["Features", "About", "Contact"].map((item) => (
+                  <li key={item}>
+                    <a
+                      href={`#${item.toLowerCase()}`}
+                      onClick={() => setIsOpen(false)}
+                      className="block px-4 py-3 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-gray-800 hover:text-primary-600 transition-all duration-200 font-medium"
+                    >
+                      {item}
+                    </a>
+                  </li>
+                ))}
+                <li className="pt-6">
+                  <Link
+                    to="/login"
+                    onClick={() => setIsOpen(false)}
+                    className="block w-full text-center rounded-xl py-3 font-semibold bg-primary-600 text-white hover:bg-primary-700 transition-all duration-300 shadow-md"
+                  >
+                    Sign In
+                  </Link>
+                </li>
+              </ul>
+            </nav>
+          </div>
+        </div>
 
-      </ul>
-    </nav>
-  </div>
-</div>
 
-               {/* Navigation */}
-<nav className="fixed w-full z-50 bg-white/20 dark:bg-gray-900/20 backdrop-blur-md border-b border-transparent">
-  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div className="flex justify-between h-16 items-center">
-      <div className="flex items-center">
-        <img
-          src="/src/assets/logo.avif"
-          alt="Haridwar University Logo"
-          className="w-[140px] h-[42px] sm:w-[160px] sm:h-[48px] object-contain"
-        />
-      </div>
-      <div className="hidden md:flex items-center space-x-8">
-        <a href="#features" className="text-white hover:text-primary-400 font-medium">
-          Features
-        </a>
-        <a href="#about" className="text-white hover:text-primary-400 font-medium">
-          About
-        </a>
-        <a href="#contact" className="text-white hover:text-primary-400 font-medium">
-          Contact
-        </a>
-        <Link to="/login" className="btn btn-primary">
-          Sign In
-        </Link>
-      </div>
-    </div>
-  </div>
-</nav>
 
-{/* Hero Section */}
-<div className="relative pt-32 pb-20 sm:pt-40 sm:pb-24 overflow-hidden">
-  <div
-    className="absolute inset-0 bg-cover bg-center filter"
-    style={{ backgroundImage: "url('/src/assets/heroImage.avif')", opacity: 0.8 }}
-  ></div>
-  <div className="absolute inset-0 bg-black/40"></div>
+
+  {/* Hero Content */}
   <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center z-10">
-    <h1 className="text-5xl md:text-7xl font-display font-bold text-white tracking-tight mb-8">
+    <h1 className="text-5xl md:text-7xl font-display font-bold text-white tracking-tight mb-8 animate-fade-in">
       Manage Your University <br />
       <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-600 to-secondary-600">
         With Excellence
       </span>
     </h1>
-    <p className="mt-4 max-w-2xl mx-auto text-xl text-gray-200 mb-10">
+    <p className="mt-4 max-w-2xl mx-auto text-xl text-gray-200 mb-10 animate-slide-up">
       A comprehensive ERP solution designed for modern education. Streamline administration,
       enhance learning, and empower your campus community.
     </p>
-    <div className="flex justify-center gap-4">
+    <div className="flex justify-center gap-4 animate-slide-up">
       <Link to="/login" className="btn btn-primary px-8 py-4 text-lg rounded-full">
         Get Started
         <ArrowRight className="ml-2 h-5 w-5" />
@@ -182,15 +161,16 @@ const Landing = () => {
       </a>
     </div>
   </div>
+
 </div>
 
-                
 
-     
-    
+
+              
+
+      {/* Features */}
       <div id="features" className="py-24 bg-gray-50 dark:bg-gray-800/50">
         <div className="max-w-7xl mx-auto px-4">
-
           <div className="text-center mb-16">
             <h2 className="text-primary-600 font-semibold uppercase">Features</h2>
             <p className="text-3xl font-display font-bold">
@@ -200,15 +180,31 @@ const Landing = () => {
 
           <div
             ref={featuresReveal.ref}
-            className={`grid grid-cols-1 md:grid-cols-3 gap-12 transition-all duration-300
-            ${featuresReveal.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"}`}
+            className={`grid grid-cols-1 md:grid-cols-3 gap-12 transition-all duration-200
+              ${featuresReveal.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"}`}
           >
             {[
-              { icon: Users, title: "Student Management", desc: "Complete lifecycle management from admission to alumni." },
-              { icon: BookOpen, title: "Academic Planning", desc: "Course scheduling and curriculum management." },
-              { icon: Award, title: "Examination & Results", desc: "Secure exams with automated evaluation." },
+              {
+                icon: Users,
+                title: "Student Management",
+                desc: "Complete lifecycle management from admission to alumni.",
+              },
+              {
+                icon: BookOpen,
+                title: "Academic Planning",
+                desc: "Course scheduling and curriculum management.",
+              },
+              {
+                icon: Award,
+                title: "Examination & Results",
+                desc: "Secure exams with automated evaluation.",
+              },
             ].map((f, i) => (
-              <div key={i} className="p-8 bg-white dark:bg-gray-800 rounded-2xl shadow-sm">
+              <div
+                key={i}
+                style={{ transitionDelay: `${i * 120}ms` }}
+                className="p-8 bg-white dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-md transition-all"
+              >
                 <div className="w-14 h-14 bg-primary-100 rounded-xl flex items-center justify-center mb-6">
                   <f.icon className="h-7 w-7 text-primary-600" />
                 </div>
@@ -220,7 +216,8 @@ const Landing = () => {
         </div>
       </div>
 
-     {/* About ERP Section */}
+
+           {/* About ERP Section */}
 <div
   id="about"
   className="scroll-mt-24 py-28 bg-white dark:bg-gray-900"
