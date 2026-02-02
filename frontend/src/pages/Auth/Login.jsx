@@ -58,11 +58,11 @@ const Login = () => {
 
             if (result) {
                 // Redirect based on role
-                if (result.role === 'STUDENT') {
+                if (result?.user?.role === 'STUDENT') {
                     navigate('/student/dashboard');
-                } else if (result.role === 'FACULTY') {
+                } else if (result?.user?.role === 'FACULTY') {
                     navigate('/faculty/dashboard');
-                } else if (result.role === 'ADMIN' || result.role === 'SUPER_ADMIN') {
+                } else if (result?.user?.role === 'ADMIN' || result?.user?.role === 'SUPER_ADMIN') {
                     navigate('/admin/dashboard');
                 }
             }
