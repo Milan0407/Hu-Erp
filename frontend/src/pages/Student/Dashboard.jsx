@@ -1,5 +1,7 @@
 import { useAuth } from '../../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { getStudentDashboard } from '../../services/dashboard.service';
 import {
     BookOpen,
     Calendar,
@@ -14,37 +16,55 @@ import {
 const StudentDashboard = () => {
     const { user, profile } = useAuth();
     const navigate = useNavigate();
+    const {
+  data,
+  isLoading,
+  isError,
+} = useQuery({
+  queryKey: ['student-dashboard'],
+  queryFn: getStudentDashboard,
+});
 
-    const stats = [
-        {
-            name: 'Attendance',
-            value: '87.5%',
-            change: '+2.5%',
-            icon: Calendar,
-            color: 'primary',
-        },
-        {
-            name: 'CGPA',
-            value: '8.42',
-            change: '+0.12',
-            icon: Award,
-            color: 'success',
-        },
-        {
-            name: 'Pending Fees',
-            value: '₹15,000',
-            change: '-₹5,000',
-            icon: DollarSign,
-            color: 'warning',
-        },
-        {
-            name: 'Courses',
-            value: '6',
-            change: 'Active',
-            icon: BookOpen,
-            color: 'secondary',
-        },
-    ];
+
+    if (isLoading) {
+  return <div className="p-8">Loading dashboard...</div>;
+}
+
+if (isError) {
+  return <div className="p-8 text-red-500">Failed to load dashboard</div>;
+}
+
+const stats = [
+  {
+    name: 'Attendance',
+    value: `${data.attendance}%`,
+    change: '',
+    icon: Calendar,
+    color: 'primary',
+  },
+  {
+    name: 'CGPA',
+    value: data.cgpa,
+    change: '',
+    icon: Award,
+    color: 'success',
+  },
+  {
+    name: 'Pending Fees',
+    value: `₹${data.pendingFees}`,
+    change: '',
+    icon: DollarSign,
+    color: 'warning',
+  },
+  {
+    name: 'Courses',
+    value: data.activeCourses,
+    change: 'Active',
+    icon: BookOpen,
+    color: 'secondary',
+  },
+];
+
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -54,9 +74,19 @@ const StudentDashboard = () => {
                     <div className="flex items-center justify-between">
                         <div>
                             <h1 className="text-3xl font-display font-bold text-gray-900 dark:text-white">
-                                Welcome back,{' '}
-                                {user?.firstName || user?.email?.split('@')[0]}! 👋
-                            </h1>
+  Welcome back,{' '}
+  {profile?.firstName ||
+    user?.email
+      ?.split("@")[0]      
+      .split(".")[0]      
+      .replace(/^(.{4})(.*)$/, (_, first, last) =>
+        first.charAt(0).toUpperCase() +
+        first.slice(1) +
+        " " +
+        last.charAt(0).toUpperCase() +
+        last.slice(1)
+      )}! 👋
+</h1>
                             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                                 {profile?.enrollmentNumber && `Enrollment: ${profile.enrollmentNumber}`}
                             </p>
@@ -145,14 +175,14 @@ const StudentDashboard = () => {
                         <div className="card-body">
                             <div className="space-y-3">
                                 {[
-                                    { icon: Calendar, label: 'View Attendance', color: 'primary' },
+                                    { icon: Calendar, label: 'View Attendance', color: 'primary', path: '/student/attendance' },
                                     { icon: FileText, label: 'Check Results', color: 'success' },
                                     { icon: DollarSign, label: 'Pay Fees', color: 'warning' },
-                                    { icon: Users, label: 'My Courses', color: 'secondary', route: '/student/courses' },
+                                    { icon: Users, label: 'My Courses', color: 'secondary', path: '/student/courses' },
                                 ].map((action, index) => (
                                     <button
                                         key={index}
-                                        onClick={() => action.route && navigate(action.route)}
+                                        onClick={() => action.path && navigate(action.path)}
                                         className="w-full flex items-center p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                                     >
                                         <action.icon className={`h-5 w-5 text-${action.color}-600`} />
