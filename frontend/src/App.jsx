@@ -9,6 +9,8 @@ import Register from './pages/Auth/Register';
 import VerifyEmail from './pages/Auth/VerifyEmail';
 import Landing from './pages/Landing';
 import StudentDashboard from './pages/Student/Dashboard';
+import ViewCourses from './pages/Courses/ViweCourses';
+import AttendanceDashboard from './pages/Student/AttendanceDashboard';
 import AdminDashboard from './pages/Admin/Dashboard';
 import StudentManagement from './pages/Admin/StudentManagement';
 import CourseManagement from './pages/Admin/CourseManagement';
@@ -70,6 +72,18 @@ function App() {
                             element={
                                 <ProtectedRoute allowedRoles={['STUDENT']}>
                                     <StudentDashboard />
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="/student/courses"
+                            element={
+                                <ProtectedRoute allowedRoles={['STUDENT']}>
+                                    <ViewCourses />
+                            path="/student/attendance"
+                            element={
+                                <ProtectedRoute allowedRoles={['STUDENT']}>
+                                    <AttendanceDashboard />
                                 </ProtectedRoute>
                             }
                         />

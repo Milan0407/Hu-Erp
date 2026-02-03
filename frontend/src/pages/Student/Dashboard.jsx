@@ -1,4 +1,5 @@
 import { useAuth } from '../../hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   getStudentDashboard,
@@ -152,6 +153,36 @@ const StudentDashboard = () => {
                           {item.faculty}
                         </p>
                       </div>
+                    {/* Quick Actions */}
+                    <div className="card">
+                        <div className="card-header">
+                            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                                Quick Actions
+                            </h2>
+                        </div>
+                        <div className="card-body">
+                            <div className="space-y-3">
+                                {[
+                                    { icon: Calendar, label: 'View Attendance', color: 'primary', path: '/student/attendance' },
+                                    { icon: FileText, label: 'Check Results', color: 'success' },
+                                    { icon: DollarSign, label: 'Pay Fees', color: 'warning' },
+                                    { icon: Users, label: 'My Courses', color: 'secondary', path: '/student/courses' },
+                                ].map((action, index) => (
+                                    <button
+                                        key={index}
+                                        onClick={() => action.path && navigate(action.path)}
+                                        className="w-full flex items-center p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                    >
+                                        <action.icon className={`h-5 w-5 text-${action.color}-600`} />
+                                        <span className="ml-3 text-sm font-medium text-gray-900 dark:text-white">
+                                            {action.label}
+                                        </span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
                       <div className="text-sm font-medium text-primary-600">
                         {item.time}
