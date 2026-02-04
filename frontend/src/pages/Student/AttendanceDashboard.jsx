@@ -14,18 +14,23 @@ import {
     BarChart3,
     Eye,
     Target,
-    Award
+    Award,
+    Calculator
 } from 'lucide-react';
 
 const AttendanceDashboard = () => {
     const navigate = useNavigate();
-    const [showFilters, setShowFilters] = useState(false);
     const [selectedCourse, setSelectedCourse] = useState('all');
     const [viewMode, setViewMode] = useState('overview');
     const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
     const [refreshing, setRefreshing] = useState(false);
     const [hoveredSegment, setHoveredSegment] = useState(null);
+    const [showCalculator, setShowCalculator] = useState(false);
+    const [calculatorClasses, setCalculatorClasses] = useState('');
+    const [calculatorTarget, setCalculatorTarget] = useState(75);
+    const [selectedCalculatorSubject, setSelectedCalculatorSubject] = useState('');
+    const [selectedDayAttendance, setSelectedDayAttendance] = useState(null);
 
     const handleRefresh = async () => {
         setRefreshing(true);
@@ -196,6 +201,55 @@ const AttendanceDashboard = () => {
         };
     };
 
+    const handleSubjectSelection = (subjectName) => {
+        setSelectedCalculatorSubject(subjectName);
+        const selectedCourse = courseWiseStats.find(course => course.course === subjectName);
+        if (selectedCourse) {
+            setCalculatorClasses(selectedCourse.total.toString());
+        } else {
+            setCalculatorClasses('');
+        }
+    };
+
+    const handleDayClick = (day) => {
+        const dateStr = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        
+        // Find attendance for this specific day
+        const dayData = attendanceData.find(item => item.date === dateStr);
+        if (dayData && dayData.courses) {
+            setSelectedDayAttendance({
+                date: dateStr,
+                day: dayData.day,
+                courses: dayData.courses
+            });
+        } else {
+            setSelectedDayAttendance({
+                date: dateStr,
+                day: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][new Date(dateStr).getDay()],
+                courses: []
+            });
+        }
+    };
+
+    const getFilteredAttendanceData = () => {
+        let filtered = [...attendanceData];
+        
+        // Apply subject filter if selected
+        if (selectedCourse !== 'all') {
+            filtered = filtered.map(day => ({
+                ...day,
+                courses: day.courses.filter(course => course.name === selectedCourse)
+            })).filter(day => day.courses.length > 0);
+        }
+        
+        // Apply date filter if selected
+        if (selectedDate) {
+            filtered = filtered.filter(day => day.date === selectedDate);
+        }
+        
+        return filtered;
+    };
+
     // Sample attendance data
     const attendanceData = [
         {
@@ -280,49 +334,48 @@ const AttendanceDashboard = () => {
     };
 
     const renderCalendar = () => {
-        const daysInMonth = getDaysInMonth(selectedMonth, selectedYear);
-        const firstDay = getFirstDayOfMonth(selectedMonth, selectedYear);
-        const days = [];
-
+        const firstDay = new Date(selectedYear, selectedMonth, 1).getDay();
+        const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+        
+        const calendar = [];
+        
+        // Empty cells for days before month starts
         for (let i = 0; i < firstDay; i++) {
-            days.push(<div key={`empty-${i}`} className="h-24 border border-gray-200 dark:border-gray-700"></div>);
+            calendar.push(<div key={`empty-${i}`} className="h-12 sm:h-20"></div>);
         }
-
+        
+        // Days of the month
         for (let day = 1; day <= daysInMonth; day++) {
             const dateStr = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-            const dayData = attendanceData.find(d => d.date === dateStr);
+            const dayData = attendanceData.find(item => item.date === dateStr);
             
-            days.push(
-                <div 
-                    key={day} 
-                    className={`h-24 border border-gray-200 dark:border-gray-700 p-2 transition-colors ${
-                        dayData 
-                            ? 'hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer' 
-                            : 'bg-gray-50 dark:bg-gray-800'
+            calendar.push(
+                <div
+                    key={day}
+                    onClick={() => handleDayClick(day)}
+                    className={`h-12 sm:h-20 p-1 sm:p-2 border border-gray-200 dark:border-gray-700 rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-105 ${
+                        dayData ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-900'
                     }`}
                 >
-                    <div className="text-sm font-medium text-gray-900 dark:text-white mb-1">{day}</div>
-                    {dayData ? (
+                    <div className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white mb-1">{day}</div>
+                    {dayData && dayData.courses.length > 0 ? (
                         <div className="space-y-1">
-                            <div className="flex items-center gap-2 text-xs">
-                                <span className="flex items-center gap-1">
-                                    <CheckCircle className="h-3 w-3 text-green-600" />
-                                    {dayData.courses.filter(c => c.status === 'present').length}
-                                </span>
-                                <span className="flex items-center gap-1">
-                                    <XCircle className="h-3 w-3 text-red-600" />
-                                    {dayData.courses.filter(c => c.status === 'absent').length}
-                                </span>
-                                {dayData.courses.filter(c => c.status === 'late').length > 0 && (
-                                    <span className="flex items-center gap-1">
-                                        <AlertCircle className="h-3 w-3 text-yellow-600" />
-                                        {dayData.courses.filter(c => c.status === 'late').length}
+                            {dayData.courses.slice(0, 1).map((course, idx) => (
+                                <div key={idx} className="flex items-center gap-1">
+                                    <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${
+                                        course.status === 'present' ? 'bg-green-500' :
+                                        course.status === 'absent' ? 'bg-red-500' : 'bg-yellow-500'
+                                    }`}></div>
+                                    <span className="text-xs text-gray-600 dark:text-gray-400 truncate hidden sm:inline">
+                                        {course.name.split(' ')[0]}
                                     </span>
-                                )}
-                            </div>
-                            <div className="text-xs text-gray-500 truncate">
-                                {dayData.courses.map(c => c.name.split(' ')[0]).join(', ')}
-                            </div>
+                                </div>
+                            ))}
+                            {dayData.courses.length > 1 && (
+                                <div className="text-xs text-gray-500 dark:text-gray-500">
+                                    +{dayData.courses.length - 1}
+                                </div>
+                            )}
                         </div>
                     ) : (
                         <div className="text-xs text-gray-400">No classes</div>
@@ -331,7 +384,7 @@ const AttendanceDashboard = () => {
             );
         }
 
-        return days;
+        return calendar;
     };
 
     return (
@@ -346,128 +399,87 @@ const AttendanceDashboard = () => {
                             >
                                 <ChevronLeft className="h-5 w-5 text-gray-600 dark:text-gray-300" />
                             </button>
-                            <div>
-                                <h1 className="text-3xl font-display font-bold text-gray-900 dark:text-white">
-                                    Interactive Attendance Dashboard
-                                </h1>
-                                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                                    Real-time insights and attendance analytics
-                                </p>
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                <div>
+                                    <h1 className="text-2xl sm:text-3xl font-display font-bold text-gray-900 dark:text-white">
+                                        Interactive Attendance Dashboard
+                                    </h1>
+                                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                                        Real-time insights and attendance analytics
+                                    </p>
+                                </div>
+                                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+                                    <button
+                                        onClick={handleRefresh}
+                                        disabled={refreshing}
+                                        className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 text-sm"
+                                    >
+                                        <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+                                        <span className="hidden sm:inline">Refresh</span>
+                                    </button>
+                                    <button 
+                                        onClick={handleExportData}
+                                        className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm"
+                                    >
+                                        <Download className="h-4 w-4" />
+                                        <span className="hidden sm:inline">Export Data</span>
+                                    </button>
+                                </div>
                             </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <button
-                                onClick={() => setShowFilters(!showFilters)}
-                                className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
-                            >
-                                <Filter className="h-4 w-4" />
-                                Filters
-                            </button>
-                            <button
-                                onClick={handleRefresh}
-                                disabled={refreshing}
-                                className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
-                            >
-                                <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-                                Refresh
-                            </button>
-                            <button 
-                                onClick={handleExportData}
-                                className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-                            >
-                                <Download className="h-4 w-4" />
-                                Export Data
-                            </button>
                         </div>
                     </div>
                 </div>
             </div>
-
-            {showFilters && (
-                <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-                        <div className="flex items-center gap-4">
-                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Course:</label>
-                            <select
-                                value={selectedCourse}
-                                onChange={(e) => setSelectedCourse(e.target.value)}
-                                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                            >
-                                {courses.map(course => (
-                                    <option key={course.id} value={course.id}>{course.name}</option>
-                                ))}
-                            </select>
-                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Month:</label>
-                            <select
-                                value={selectedMonth}
-                                onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                            >
-                                {monthNames.map((month, index) => (
-                                    <option key={month} value={index}>{month}</option>
-                                ))}
-                            </select>
-                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Year:</label>
-                            <select
-                                value={selectedYear}
-                                onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                            >
-                                <option value={2023}>2023</option>
-                                <option value={2024}>2024</option>
-                                <option value={2025}>2025</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-            )}
             
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {/* View Mode Tabs */}
                 <div className="card mb-6">
                     <div className="card-body">
-                        <div className="flex flex-wrap items-center justify-between gap-4">
-                            <div className="flex items-center gap-2">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                            <div className="flex flex-wrap items-center gap-2">
                                 <button
                                     onClick={() => setViewMode('overview')}
-                                    className={`px-4 py-2 rounded-lg transition-colors ${
+                                    className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm ${
                                         viewMode === 'overview' 
                                             ? 'bg-primary-600 text-white' 
                                             : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
                                     }`}
                                 >
-                                    Overview
+                                    <Eye className="h-4 w-4" />
+                                    <span className="hidden sm:inline">Overview</span>
                                 </button>
                                 <button
                                     onClick={() => setViewMode('calendar')}
-                                    className={`px-4 py-2 rounded-lg transition-colors ${
+                                    className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm ${
                                         viewMode === 'calendar' 
                                             ? 'bg-primary-600 text-white' 
                                             : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
                                     }`}
                                 >
-                                    Calendar
+                                    <Calendar className="h-4 w-4" />
+                                    <span className="hidden sm:inline">Calendar</span>
                                 </button>
                                 <button
                                     onClick={() => setViewMode('summary')}
-                                    className={`px-4 py-2 rounded-lg transition-colors ${
+                                    className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm ${
                                         viewMode === 'summary' 
                                             ? 'bg-primary-600 text-white' 
                                             : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
                                     }`}
                                 >
-                                    Summary
+                                    <BarChart3 className="h-4 w-4" />
+                                    <span className="hidden sm:inline">Summary</span>
                                 </button>
                                 <button
                                     onClick={() => setViewMode('analytics')}
-                                    className={`flex items-center px-4 py-2 rounded-lg transition-colors ${
+                                    className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm ${
                                         viewMode === 'analytics' 
                                             ? 'bg-primary-600 text-white' 
                                             : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
                                     }`}
                                 >
-                                    <BarChart3 className="h-4 w-4 mr-2" />
-                                    Analytics
+                                    <BarChart3 className="h-4 w-4" />
+                                    <span className="hidden sm:inline">Analytics</span>
                                 </button>
                             </div>
                         </div>
@@ -611,48 +623,52 @@ const AttendanceDashboard = () => {
                 {viewMode === 'calendar' && (
                     <div className="card">
                         <div className="card-header">
-                            <div className="flex items-center justify-between">
-                                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                                    Attendance Calendar
-                                </h2>
-                                <div className="flex items-center gap-4">
-                                    <div className="flex items-center gap-2">
-                                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Month:</label>
-                                        <select
-                                            value={selectedMonth}
-                                            onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                                            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                                        >
-                                            {monthNames.map((month, index) => (
-                                                <option key={month} value={index}>{month}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Year:</label>
-                                        <select
-                                            value={selectedYear}
-                                            onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                                            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                                        >
-                                            <option value={2023}>2023</option>
-                                            <option value={2024}>2024</option>
-                                            <option value={2025}>2025</option>
-                                        </select>
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                                        Attendance Calendar
+                                    </h2>
+                                    <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
+                                        <div className="flex items-center gap-2">
+                                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Month:</label>
+                                            <select
+                                                value={selectedMonth}
+                                                onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                                                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
+                                            >
+                                                {monthNames.map((month, index) => (
+                                                    <option key={month} value={index}>{month}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Year:</label>
+                                            <select
+                                                value={selectedYear}
+                                                onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                                                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
+                                            >
+                                                <option value={2023}>2023</option>
+                                                <option value={2024}>2024</option>
+                                                <option value={2025}>2025</option>
+                                            </select>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
                         <div className="card-body">
-                            <div className="grid grid-cols-7 gap-0 mb-2">
-                                {dayNames.map(day => (
-                                    <div key={day} className="text-center text-sm font-medium text-gray-700 dark:text-gray-300 py-2">
-                                        {day}
+                            <div className="overflow-x-auto">
+                                <div className="min-w-max">
+                                    <div className="grid grid-cols-7 gap-1 sm:gap-0 mb-2">
+                                        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                                            <div key={day} className="text-center text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 py-1 sm:py-2">
+                                                {day}
+                                            </div>
+                                        ))}
                                     </div>
-                                ))}
-                            </div>
-                            <div className="grid grid-cols-7 gap-0">
-                                {renderCalendar()}
+                                    <div className="grid grid-cols-7 gap-1 sm:gap-0">
+                                        {renderCalendar()}
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -670,38 +686,61 @@ const AttendanceDashboard = () => {
                                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                                     <thead className="bg-gray-50 dark:bg-gray-800">
                                         <tr>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Course</th>
-                                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total Classes</th>
-                                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Present</th>
-                                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Absent</th>
-                                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Late</th>
-                                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Attendance %</th>
-                                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                Subject
+                                            </th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                Total Classes
+                                            </th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                Present
+                                            </th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                Absent
+                                            </th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                Late
+                                            </th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                Attendance %
+                                            </th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                Status
+                                            </th>
                                         </tr>
                                     </thead>
                                     <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
                                         {courseWiseStats.map((course, index) => (
                                             <tr key={index}>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{course.course}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-500 dark:text-gray-400">{course.total}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-green-600">{course.present}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-red-600">{course.absent}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-yellow-600">{course.late}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
-                                                    <span className={`font-medium ${
-                                                        course.percentage >= 75 ? 'text-green-600' : 
-                                                        course.percentage >= 60 ? 'text-yellow-600' : 'text-red-600'
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                                                    {course.course}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                                                    {course.total}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600 dark:text-green-400 font-medium">
+                                                    {course.present}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600 dark:text-red-400 font-medium">
+                                                    {course.absent}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-yellow-600 dark:text-yellow-400 font-medium">
+                                                    {course.late}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                                                    <span className={`font-semibold ${
+                                                        course.percentage >= 75 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                                                     }`}>
                                                         {course.percentage}%
                                                     </span>
                                                 </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-center">
-                                                    <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                                        course.percentage >= 75 ? 'bg-green-100 text-green-800' : 
-                                                        course.percentage >= 60 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                                        course.percentage >= 75 
+                                                            ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
+                                                            : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
                                                     }`}>
-                                                        {course.percentage >= 75 ? 'Good' : 
-                                                         course.percentage >= 60 ? 'Average' : 'Poor'}
+                                                        {course.percentage >= 75 ? 'Eligible' : 'Not Eligible'}
                                                     </span>
                                                 </td>
                                             </tr>
@@ -714,8 +753,120 @@ const AttendanceDashboard = () => {
                 )}
 
                 {viewMode === 'analytics' && (
-                    <div className="space-y-6">
-                        {/* Key Metrics */}
+                    <div className="space-y-6 relative">
+                        {/* Floating Calculator Button */}
+                        <button
+                            onClick={() => setShowCalculator(!showCalculator)}
+                            className="fixed bottom-6 right-6 z-50 bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full shadow-lg transition-all duration-300 hover:scale-110"
+                            title="Smart Calculator"
+                        >
+                            <Calculator className="h-6 w-6" />
+                        </button>
+
+                        {/* Calculator Panel */}
+                        {showCalculator && (
+                            <div className="fixed bottom-20 right-6 z-40 w-96 max-w-[90vw] bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700">
+                                <div className="p-6">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                                            Smart Calculator
+                                        </h3>
+                                        <button
+                                            onClick={() => setShowCalculator(false)}
+                                            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                        >
+                                            <XCircle className="h-5 w-5" />
+                                        </button>
+                                    </div>
+                                    
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                Select Subject
+                                            </label>
+                                            <select
+                                                value={selectedCalculatorSubject}
+                                                onChange={(e) => handleSubjectSelection(e.target.value)}
+                                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                            >
+                                                <option value="">Choose a subject...</option>
+                                                {courseWiseStats.map((course, index) => (
+                                                    <option key={index} value={course.course}>
+                                                        {course.course}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+
+                                        {selectedCalculatorSubject && (
+                                            <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                                <div className="grid grid-cols-2 gap-4 text-sm">
+                                                    <div>
+                                                        <span className="text-gray-500 dark:text-gray-400">Total Classes:</span>
+                                                        <span className="ml-2 font-semibold text-gray-900 dark:text-white">
+                                                            {courseWiseStats.find(c => c.course === selectedCalculatorSubject)?.total || 0}
+                                                        </span>
+                                                    </div>
+                                                    <div>
+                                                        <span className="text-gray-500 dark:text-gray-400">Attended:</span>
+                                                        <span className="ml-2 font-semibold text-green-600 dark:text-green-400">
+                                                            {courseWiseStats.find(c => c.course === selectedCalculatorSubject)?.present || 0}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                        
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                Target Percentage
+                                            </label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                max="100"
+                                                value={calculatorTarget}
+                                                onChange={(e) => setCalculatorTarget(parseInt(e.target.value) || 0)}
+                                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                                placeholder="75"
+                                            />
+                                        </div>
+
+                                        {selectedCalculatorSubject && calculatorTarget && (
+                                            <div className="pt-4 border-t border-gray-200 dark:border-gray-600">
+                                                <div className="grid grid-cols-2 gap-4 text-sm">
+                                                    <div className="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                                                        <div className="text-blue-600 dark:text-blue-400 font-bold text-lg">
+                                                            {Math.ceil((calculatorClasses * calculatorTarget) / 100)}
+                                                        </div>
+                                                        <div className="text-gray-600 dark:text-gray-400">Required</div>
+                                                    </div>
+                                                    <div className="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                                                        <div className="text-green-600 dark:text-green-400 font-bold text-lg">
+                                                            {Math.max(0, calculatorClasses - Math.ceil((calculatorClasses * calculatorTarget) / 100))}
+                                                        </div>
+                                                        <div className="text-gray-600 dark:text-gray-400">Can Miss</div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                                                    <div className="text-center">
+                                                        <div className="text-yellow-600 dark:text-yellow-400 font-semibold">
+                                                            Status: {Math.ceil((calculatorClasses * calculatorTarget) / 100) > (courseWiseStats.find(c => c.course === selectedCalculatorSubject)?.present || 0) ? 'Need Improvement' : 'On Track'}
+                                                        </div>
+                                                        <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                                                            Current: {courseWiseStats.find(c => c.course === selectedCalculatorSubject)?.present || 0} / {calculatorClasses} classes
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Analytics Content */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div className="card">
                                 <div className="card-body">
@@ -811,21 +962,32 @@ const AttendanceDashboard = () => {
                                 </h2>
                             </div>
                             <div className="card-body">
-                                <div className="flex items-center justify-center">
-                                    <div className="grid grid-cols-7 gap-2 max-w-md">
-                                        {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
-                                            <div key={day} className="text-center">
-                                                <div className="text-xs font-medium text-gray-900 dark:text-white mb-2">
-                                                    {day.substring(0, 3)}
+                                <div className="flex items-center justify-center overflow-x-auto">
+                                    <div className="grid grid-cols-7 gap-2 sm:gap-4 min-w-max px-2">
+                                        {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day, index) => {
+                                            const percentages = [85, 92, 78, 88, 95, 45, 30];
+                                            const percentage = percentages[index];
+                                            return (
+                                                <div key={day} className="text-center group">
+                                                    <div className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white mb-2 sm:mb-3">
+                                                        {day.substring(0, 3)}
+                                                    </div>
+                                                    <div className="w-12 h-16 sm:w-16 sm:h-24 rounded-lg bg-gradient-to-t from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-900 flex items-end justify-center p-1 sm:p-2 group-hover:shadow-lg transition-all duration-300">
+                                                        <div 
+                                                            className={`w-full rounded-t transition-all duration-300 group-hover:scale-105 ${
+                                                                percentage >= 80 ? 'bg-gradient-to-t from-green-600 to-green-400' :
+                                                                percentage >= 60 ? 'bg-gradient-to-t from-yellow-600 to-yellow-400' :
+                                                                'bg-gradient-to-t from-red-600 to-red-400'
+                                                            }`} 
+                                                            style={{ height: `${percentage}%` }} 
+                                                        />
+                                                    </div>
+                                                    <div className="text-xs sm:text-sm font-bold text-gray-700 dark:text-gray-300 mt-1 sm:mt-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                                        {percentage}%
+                                                    </div>
                                                 </div>
-                                                <div className="w-12 h-16 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-end justify-center p-1">
-                                                    <div className="w-full bg-green-500 rounded" style={{ height: '75%', opacity: 0.6 }} />
-                                                </div>
-                                                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                                    85%
-                                                </div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             </div>
@@ -839,24 +1001,25 @@ const AttendanceDashboard = () => {
                                 </h2>
                             </div>
                             <div className="card-body">
-                                <div className="h-64 flex items-center justify-center">
-                                    <div className="flex items-end justify-between gap-3 w-full max-w-2xl">
+                                <div className="h-64 sm:h-80 flex items-center justify-center overflow-x-auto">
+                                    <div className="flex items-end justify-between gap-2 sm:gap-6 w-full max-w-2xl sm:max-w-4xl px-2 sm:px-4 min-w-max">
                                         {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'].map((month, index) => {
-                                            const percentage = 65 + index * 5;
+                                            const percentages = [65, 70, 75, 82, 88, 92];
+                                            const percentage = percentages[index];
                                             const height = percentage;
                                             return (
-                                                <div key={month} className="flex-1 flex flex-col items-center group cursor-pointer">
+                                                <div key={month} className="flex-1 flex flex-col items-center group cursor-pointer min-w-[40px] sm:min-w-[60px]">
                                                     <div className="relative w-full flex flex-col items-center">
-                                                        <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <div className="absolute -top-6 sm:-top-8 text-xs sm:text-sm font-bold text-blue-600 dark:text-blue-400 bg-white dark:bg-gray-800 px-1 sm:px-2 py-1 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:-translate-y-1 whitespace-nowrap">
                                                             {percentage}%
                                                         </div>
                                                         <div 
-                                                            className="w-full bg-gradient-to-t from-blue-600 to-blue-400 rounded-t hover:from-blue-700 hover:to-blue-500 transition-all duration-300 transform hover:scale-105"
-                                                            style={{ height: `${height * 2}px` }}
+                                                            className="w-full bg-gradient-to-t from-blue-600 via-blue-500 to-blue-400 rounded-t-lg hover:from-blue-700 hover:via-blue-600 hover:to-blue-500 transition-all duration-300 transform hover:scale-105 shadow-md hover:shadow-xl"
+                                                            style={{ height: `${height * 1.5}px` }}
                                                         />
                                                     </div>
-                                                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-2 font-medium">{month}</div>
-                                                    <div className="text-xs text-gray-600 dark:text-gray-400">{percentage}%</div>
+                                                    <div className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mt-2 sm:mt-3">{month}</div>
+                                                    <div className="text-xs text-gray-600 dark:text-gray-400 hidden sm:block">{percentage}%</div>
                                                 </div>
                                             );
                                         })}
@@ -1025,6 +1188,71 @@ const AttendanceDashboard = () => {
                     </div>
                 )}
             </div>
+
+            {/* Day-wise Attendance Detail Modal */}
+            {selectedDayAttendance && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+                        <div className="p-6">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Overall Attendance</p>
+                                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{courseStats.percentage}%</p>
+                                </div>
+                                <button
+                                    onClick={() => setSelectedDayAttendance(null)}
+                                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                >
+                                    <XCircle className="h-5 w-5" />
+                                </button>
+                            </div>
+
+                            {selectedDayAttendance.courses.length > 0 ? (
+                                <div className="space-y-3">
+                                    {selectedDayAttendance.courses.map((course, index) => (
+                                        <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex-1">
+                                                    <h4 className="font-semibold text-gray-900 dark:text-white">
+                                                        {course.name}
+                                                    </h4>
+                                                    <div className="flex items-center gap-4 mt-2 text-sm text-gray-600 dark:text-gray-400">
+                                                        <span>{course.time}</span>
+                                                        <span>{course.room}</span>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                                                        course.status === 'present' 
+                                                            ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
+                                                            : course.status === 'absent'
+                                                            ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                                                            : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                                    }`}>
+                                                        {course.status.charAt(0).toUpperCase() + course.status.slice(1)}
+                                                    </span>
+                                                    {course.status === 'present' && <CheckCircle className="h-5 w-5 text-green-500" />}
+                                                    {course.status === 'absent' && <XCircle className="h-5 w-5 text-red-500" />}
+                                                    {course.status === 'late' && <AlertCircle className="h-5 w-5 text-yellow-500" />}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-center py-8">
+                                    <div className="text-gray-400 mb-2">
+                                        <Calendar className="h-12 w-12 mx-auto" />
+                                    </div>
+                                    <p className="text-gray-500 dark:text-gray-400">
+                                        No classes scheduled for this day
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
