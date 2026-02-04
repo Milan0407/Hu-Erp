@@ -16,8 +16,11 @@ import CourseManagement from './pages/Admin/CourseManagement';
 import FacultyManagement from './pages/Admin/FacultyManagement';
 import FacultyDashboard from './pages/Faculty/Dashboard';
 import ProtectedRoute from './components/ProtectedRoute';
-
-// Create query client
+import Assignment from './pages/Assignment/Assignment';
+import DetailsAssignment from "./pages/DetalisAssignemt/DetailsAssignment";
+import DetailsQuiz from './pages/DetailsQuiz/DetailsQuiz';
+import CourseDetails from "./pages/CourseDetails/CourseDetails";
+ // Create query client
 const queryClient = new QueryClient({
     defaultOptions: {
         queries: {
@@ -74,11 +77,49 @@ function App() {
                                 </ProtectedRoute>
                             }
                         />
+                        {/* View Courses */}
                         <Route
                             path="/student/courses"
                             element={
                                 <ProtectedRoute allowedRoles={['STUDENT']}>
                                     <ViewCourses />
+                                </ProtectedRoute>
+                            }
+                        />
+                        {/* Assignment */}
+                        <Route
+                            path="/assignment/:id"
+                            element={
+                                <ProtectedRoute allowedRoles={['STUDENT']}>
+                                    <Assignment />
+                                </ProtectedRoute>
+                            }
+                        />
+                        {/* Details Assignment */}
+                        <Route
+                            path="/assignment/details/:id"
+                            element={
+                                <ProtectedRoute allowedRoles={['STUDENT']}>
+                                    <DetailsAssignment />
+                                </ProtectedRoute>
+                            }
+                        />
+                        {/* Details Quiz */}
+                        <Route
+                            path="/quiz/details/:id"
+                            element={
+                                <ProtectedRoute allowedRoles={['STUDENT']}>
+                                    <DetailsQuiz />
+                                </ProtectedRoute>
+                            }
+                        />
+                        
+                        {/* Course Details */}
+                        <Route
+                            path="/course/details/:id"
+                            element={
+                                <ProtectedRoute allowedRoles={['STUDENT']}>
+                                    <CourseDetails />
                                 </ProtectedRoute>
                             }
                         />
