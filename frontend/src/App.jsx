@@ -11,6 +11,7 @@ import ForgotPassword from './pages/Auth/ForgotPassword';
 import ResetPassword from './pages/Auth/ResetPassword';
 import Landing from './pages/Landing';
 import StudentDashboard from './pages/Student/Dashboard';
+import ViewCourses from './pages/Courses/ViweCourses';
 import AttendanceDashboard from './pages/Student/AttendanceDashboard';
 import AdminDashboard from './pages/Admin/Dashboard';
 import StudentManagement from './pages/Admin/StudentManagement';
@@ -79,8 +80,15 @@ function App() {
                             }
                         />
                         <Route
-                            path="/student/attendance"
+                            path="/student/courses"
                             element={
+                                <ProtectedRoute allowedRoles={['STUDENT']}>
+                                    <ViewCourses />
+                                    </ProtectedRoute>
+                            }
+                         />         
+                          <Route  path="/student/attendance"
+                        element={
                                 <ProtectedRoute allowedRoles={['STUDENT']}>
                                     <AttendanceDashboard />
                                 </ProtectedRoute>
@@ -126,6 +134,7 @@ function App() {
                                 </div>
                             }
                         />
+                        
                     </Routes>
                 </BrowserRouter>
             </QueryClientProvider>
